@@ -18,8 +18,8 @@ else
 fi
 # temporary inventory will be written to ~/.localhost.ini only if it doesn't already exist to avoid
 # accidental overwrites
-if [ -n "$5" ]; then 
-  ansible_inventory=$ansible_working_dir/$5
+if [ -n "$4" ]; then 
+  ansible_inventory=$ansible_working_dir/$4
 else
   if [ ! -f ~/.localhost.ini ]; then
     ansible_inventory_tmp=~/.localhost.ini
@@ -66,4 +66,6 @@ echo "Running Ansible as $USER:"
 echo "ansible-playbook $ansible_playbooks --inventory-file=$ansible_inventory --connection=local ${ansible_extra_vars_file} ${ansible_options}"
 ansible-playbook ${ansible_playbooks} --inventory-file="$ansible_inventory" --connection=local ${ansible_extra_vars_file} ${ansible_options} || true
 # Trash the temp inventory afterwards
-rm $ansible_inventory_tmp
+if [ -n "$ansible_inventory_tmp" ]; then
+  rm $ansible_inventory_tmp
+fi
