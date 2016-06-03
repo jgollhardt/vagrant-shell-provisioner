@@ -2,7 +2,8 @@
 # $1 - Ansible working directory on the guest
 # $2 - One of more Ansible playbooks relative to $1 ($ansible_working_dir) (space delimited)
 # $3 - Extra vars file, path is relative to $1 ($ansible_working_dir)
-# $4 - Additional options (freeform)
+# $4 - Inventory file, path is relative to $1 ($ansible_working_dir)
+# $5 - Additional options (freeform)
 if [ -d "$1" ]; then
   ansible_working_dir="$1"
 else
@@ -17,17 +18,22 @@ else
 fi
 # temporary inventory will be written to ~/.localhost.ini only if it doesn't already exist to avoid
 # accidental overwrites
-if [ ! -f ~/.localhost.ini ]; then
-  ansible_inventory_tmp=~/.localhost.ini
-  # le sigh ... https://github.com/ansible/ansible/issues/11695
-  echo "localhost              ansible_connection=local" > $ansible_inventory_tmp
-  if [ ! -f "$ansible_inventory_tmp" ]; then
-    echo "Temporary inventory was not written to: $ansible_inventory_tmp"
+if [ -n "$5" ]; then 
+  ansible_inventory=$ansible_working_dir/$5
+else
+  if [ ! -f ~/.localhost.ini ]; then
+    ansible_inventory_tmp=~/.localhost.ini
+    ansible_inventory=$ansible_inventory_tmp
+    # le sigh ... https://github.com/ansible/ansible/issues/11695
+    echo "localhost              ansible_connection=local" > $ansible_inventory
+    if [ ! -f "$ansible_inventory" ]; then
+      echo "Temporary inventory was not written to: $ansible_inventory"
+      exit 1
+    fi
+  else
+    echo "Inventory file already exists at: ~/.localhost.ini"
     exit 1
   fi
-else
-  echo "Inventory file already exists at: ~/.localhost.ini"
-  exit 1
 fi
 
 # Explode more than one playbook out into many on whitespace and prepend ansible_working_dir
@@ -45,8 +51,8 @@ else
 fi
 
 # Add extra ansible-playbook options is specified
-if [ -n "$4" ]; then
-  ansible_options="$4"
+if [ -n "$5" ]; then
+  ansible_options="$5"
 else
   ansible_options=""
 fi
@@ -57,7 +63,7 @@ export PYTHONUNBUFFERED=1
 export ANSIBLE_FORCE_COLOR=true
 echo "Running Ansible as $USER:"
 # Have to use the inventory tmpfile here because we can't remove executable bit on Windows
-echo "ansible-playbook $ansible_playbooks --inventory-file=$ansible_inventory_tmp --connection=local ${ansible_extra_vars_file} ${ansible_options}"
-ansible-playbook ${ansible_playbooks} --inventory-file="$ansible_inventory_tmp" --connection=local ${ansible_extra_vars_file} ${ansible_options} || true
+echo "ansible-playbook $ansible_playbooks --inventory-file=$ansible_inventory --connection=local ${ansible_extra_vars_file} ${ansible_options}"
+ansible-playbook ${ansible_playbooks} --inventory-file="$ansible_inventory" --connection=local ${ansible_extra_vars_file} ${ansible_options} || true
 # Trash the temp inventory afterwards
 rm $ansible_inventory_tmp
