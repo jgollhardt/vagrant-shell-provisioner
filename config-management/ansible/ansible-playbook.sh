@@ -19,7 +19,7 @@ fi
 # temporary inventory will be written to ~/.localhost.ini only if it doesn't already exist to avoid
 # accidental overwrites
 if [ -n "$4" ]; then 
-  ansible_inventory=$ansible_working_dir/$4
+  ansible_inventory=$4
 else
   if [ ! -f ~/.localhost.ini ]; then
     ansible_inventory_tmp=~/.localhost.ini
@@ -40,12 +40,12 @@ fi
 playbooks=( $ansible_playbooks )
 ansible_playbooks=""
 for playbook in "${playbooks[@]}"; do
-  ansible_playbooks+="$ansible_working_dir/$playbook "
+  ansible_playbooks+="$playbook "
 done
 
 # Add extra_vars file if specified
 if [ -f "$ansible_working_dir/$3" ]; then
-  ansible_extra_vars_file="--extra-vars @$ansible_working_dir/$3"
+  ansible_extra_vars_file="--extra-vars @$3"
 else
   ansible_extra_vars_file=""
 fi
@@ -63,8 +63,8 @@ export PYTHONUNBUFFERED=1
 export ANSIBLE_FORCE_COLOR=true
 echo "Running Ansible as $USER:"
 # Have to use the inventory tmpfile here because we can't remove executable bit on Windows
-echo "ansible-playbook $ansible_playbooks --inventory-file=$ansible_inventory --connection=local ${ansible_extra_vars_file} ${ansible_options}"
-ansible-playbook ${ansible_playbooks} --inventory-file="$ansible_inventory" --connection=local ${ansible_extra_vars_file} ${ansible_options} || true
+echo "cd $ansible_working_dir && ansible-playbook $ansible_playbooks --inventory-file=$ansible_inventory --connection=local ${ansible_extra_vars_file} ${ansible_options}"
+cd $ansible_working_dir && ansible-playbook ${ansible_playbooks} --inventory-file="$ansible_inventory" --connection=local ${ansible_extra_vars_file} ${ansible_options} || true
 # Trash the temp inventory afterwards
 if [ -n "$ansible_inventory_tmp" ]; then
   rm $ansible_inventory_tmp
